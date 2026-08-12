@@ -810,9 +810,9 @@ function ExperienceChapter({
   return (
     <article
       ref={scene}
-      className="relative h-[180vh] border-t border-white/15 md:h-[220vh]"
+      className="relative min-h-[100svh] border-t border-white/15 md:h-[220vh] md:min-h-0"
     >
-      <div className="group sticky top-0 h-screen overflow-hidden bg-[#111]">
+      <div className="group relative min-h-[100svh] overflow-hidden bg-[#111] md:sticky md:top-0 md:h-screen md:min-h-0">
         <img
           ref={media}
           src={image}
@@ -824,7 +824,7 @@ function ExperienceChapter({
         <div className="pointer-events-none absolute inset-0 bg-gradient-to-r from-black/90 via-black/35 to-black/20" />
         <div className="pointer-events-none absolute inset-0 bg-gradient-to-t from-black/70 via-transparent to-black/20" />
         <div
-          className={`${wrap} relative z-10 flex h-full flex-col justify-between py-20 md:py-24`}
+          className={`${wrap} relative z-10 flex min-h-[100svh] flex-col justify-between py-14 md:h-full md:min-h-0 md:py-24`}
         >
           <div className="flex items-center justify-between">
             <span className="text-[9px] uppercase tracking-[.22em] text-white/70">
@@ -853,7 +853,7 @@ function ExperienceChapter({
             </div>
           </div>
         </div>
-        <div className="absolute bottom-0 left-0 h-[3px] w-full bg-white/20">
+        <div className="absolute bottom-0 left-0 hidden h-[3px] w-full bg-white/20 md:block">
           <span className="chapter-progress block h-full origin-left bg-white" />
         </div>
       </div>
