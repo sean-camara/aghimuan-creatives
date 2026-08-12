@@ -58,20 +58,20 @@ html::-webkit-scrollbar-corner { background: #151514; }
 
 .cursor-ring {
   display: grid;
-  width: 44px;
-  height: 44px;
+  width: 32px;
+  height: 32px;
   place-items: center;
   border: 1px solid rgba(255,255,255,.65);
   color: transparent;
-  font-size: 7px;
+  font-size: 6px;
   letter-spacing: .14em;
   text-transform: uppercase;
   transition: width .25s ease, height .25s ease, color .25s ease, background .25s ease;
 }
 
 .cursor-ring.is-active {
-  width: 76px;
-  height: 76px;
+  width: 48px;
+  height: 48px;
   background: white;
   color: black;
   mix-blend-mode: normal;

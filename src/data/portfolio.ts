@@ -50,12 +50,13 @@ export const creativeSkills = [
 ]
 export const software: string[] = ['Adobe Premiere Pro', 'Adobe Lightroom', 'Adobe Photoshop', 'Canva']
 export const visualArchive = [
-  [assets.heroPortrait, 'Portrait / Direction', '01'],
-  [assets.aboutPortrait, 'Editorial / Story', '02'],
-  ['https://images.unsplash.com/photo-1514525253161-7a46d19cd819?auto=format&fit=crop&w=1600&q=90', 'Nightlife / Energy', '03'],
-  ['https://images.unsplash.com/photo-1492684223066-81342ee5ff30?auto=format&fit=crop&w=1400&q=90', 'Live / Atmosphere', '04'],
-  ['https://images.unsplash.com/photo-1485846234645-a62644f84728?auto=format&fit=crop&w=1400&q=90', 'Film / Production', '05'],
-  ['https://images.unsplash.com/photo-1500648767791-00dcc994a43e?auto=format&fit=crop&w=1200&q=90', 'People / Character', '06'],
-  ['https://images.unsplash.com/photo-1483985988355-763728e1935b?auto=format&fit=crop&w=1400&q=90', 'Fashion / Form', '07'],
-  ['https://images.unsplash.com/photo-1497366811353-6870744d04b2?auto=format&fit=crop&w=1400&q=90', 'Space / Geometry', '08'],
+  ['/assets/sny08914.jpg', 'Portrait / Direction', '01'],
+  ['/assets/editorial-story.webp', 'Editorial / Story', '02'],
+  ['/assets/nightlife-energy.webp', 'Nightlife / Energy', '03'],
+  ['/assets/live-atmosphere.webp', 'Live / Atmosphere', '04'],
+  ['/assets/film-production.webp', 'Film / Production', '05'],
+  ['/assets/people-character.webp', 'People / Character', '06'],
+  ['/assets/fashion-form.webp', 'Fashion / Form', '07'],
+  ['/assets/space-geometry.webp', 'Space / Geometry', '08'],
+  ['/assets/pasanin-cast.webp', 'PASANIN / Cast', '09'],
 ] as const

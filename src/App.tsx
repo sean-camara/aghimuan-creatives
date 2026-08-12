@@ -1,6 +1,6 @@
 import { useEffect, useMemo, useRef, useState, type ReactNode } from 'react'
 import { Link, Route, Routes, useLocation } from 'react-router-dom'
-import { ArrowDown, ArrowRight, ArrowUpRight, AtSign, BriefcaseBusiness, CalendarDays, Camera, Download, Layers3, Lightbulb, Menu, Play, Sparkles, Video, X } from 'lucide-react'
+import { ArrowDown, ArrowLeft, ArrowRight, ArrowUpRight, AtSign, BriefcaseBusiness, CalendarDays, Camera, Download, Layers3, Lightbulb, Menu, Play, Sparkles, Video, X } from 'lucide-react'
 import { layout } from './config/design'
 import { assets, creativeSkills, projects, services, socials, software, stats, visualArchive, type Project } from './data/portfolio'
 import { useRouteScroll } from './hooks/useRouteScroll'
@@ -106,26 +106,30 @@ function Home() {
 }
 
 function Experience() {
-  const chapters = [
+  const chapters: ExperienceChapterProps[] = [
     {
       number: '01', eyebrow: 'Freelance practice / 2019—Present', title: <>Making nights<br /><em>feel eternal.</em></>,
       copy: 'Photography, reels, promotional films and event visuals for models, brands, Alibi Music Lounge, Corte Ibiza and more.',
-      image: 'https://images.unsplash.com/photo-1514525253161-7a46d19cd819?auto=format&fit=crop&w=1800&q=92',
+      image: '/assets/nightlife-dj.webp',
+      imageFit: 'cover',
       inset: 'https://images.unsplash.com/photo-1492684223066-81342ee5ff30?auto=format&fit=crop&w=1000&q=90',
+      showInset: false,
       tags: ['Nightlife', 'Events', 'Reels', 'Photography'],
     },
     {
       number: '02', eyebrow: 'Featured film / PASANIN', title: <>Stories with<br /><em>something at stake.</em></>,
       copy: 'A narrative capstone short about breadwinner struggles—developed from concept through planning, production, editing and final output.',
-      image: 'https://images.unsplash.com/photo-1485846234645-a62644f84728?auto=format&fit=crop&w=1800&q=92',
+      image: '/assets/pasanin-screening.webp',
       inset: 'https://images.unsplash.com/photo-1489599849927-2ee91cede3ba?auto=format&fit=crop&w=1000&q=90',
+      showInset: false,
       tags: ['Narrative', 'Direction', 'Production', 'Post'],
     },
     {
       number: '03', eyebrow: 'Multimedia arts / STI Novaliches', title: <>One practice.<br /><em>Many forms.</em></>,
       copy: 'Bachelor of Multimedia Arts, July 2026. Trained across design, publishing, photography, film, interactive media, and 2D/3D animation.',
-      image: aboutPortrait,
-      inset: heroPortrait,
+      image: '/assets/pasanin-poster.webp',
+      inset: '/assets/pasanin-poster.webp',
+      showInset: false,
       tags: software,
     },
   ]
@@ -149,11 +153,13 @@ interface ExperienceChapterProps {
   title: ReactNode
   copy: string
   image: string
+  imageFit?: 'cover' | 'contain' | 'fill'
   inset: string
+  showInset?: boolean
   tags: string[]
 }
 
-function ExperienceChapter({ number, eyebrow: label, title, copy, image, inset, tags }: ExperienceChapterProps) {
+function ExperienceChapter({ number, eyebrow: label, title, copy, image, imageFit = 'cover', inset, showInset = true, tags }: ExperienceChapterProps) {
   const scene = useRef<HTMLElement>(null)
   const media = useRef<HTMLImageElement>(null)
   const insetMedia = useRef<HTMLElement>(null)
@@ -177,21 +183,38 @@ function ExperienceChapter({ number, eyebrow: label, title, copy, image, inset, 
     return () => { observer.disconnect(); window.removeEventListener('scroll', onScroll); if (frame) cancelAnimationFrame(frame) }
   }, [])
   return <article ref={scene} className="relative h-[180vh] border-t border-white/15 md:h-[220vh]">
-    <div className="sticky top-0 h-screen overflow-hidden bg-[#111]">
-      <img ref={media} src={image} alt="" loading="lazy" decoding="async" className="absolute inset-0 h-full w-full object-cover grayscale md:will-change-transform" />
-      <div className="absolute inset-0 bg-gradient-to-r from-black/90 via-black/35 to-black/20" />
-      <div className="absolute inset-0 bg-gradient-to-t from-black/70 via-transparent to-black/20" />
+    <div className="group sticky top-0 h-screen overflow-hidden bg-[#111]">
+      <img ref={media} src={image} alt="" loading="lazy" decoding="async" className={`absolute inset-0 h-full w-full ${imageFit === 'contain' ? 'object-contain' : imageFit === 'fill' ? 'object-fill' : 'object-cover'} grayscale transition-[filter] duration-500 group-hover:grayscale-0 md:will-change-transform`} />
+      <div className="pointer-events-none absolute inset-0 bg-gradient-to-r from-black/90 via-black/35 to-black/20" />
+      <div className="pointer-events-none absolute inset-0 bg-gradient-to-t from-black/70 via-transparent to-black/20" />
       <div className={`${wrap} relative z-10 flex h-full flex-col justify-between py-20 md:py-24`}>
         <div className="flex items-center justify-between"><span className="text-[9px] uppercase tracking-[.22em] text-white/70">{label}</span><span className="font-display text-4xl italic text-white/60">{number}</span></div>
         <div className="max-w-4xl"><h3 className="font-display text-[clamp(52px,8vw,116px)] leading-[.82] tracking-[-.065em]">{title}</h3><p className="mt-7 max-w-xl text-sm leading-7 text-white/75 md:text-base">{copy}</p><div className="mt-7 flex flex-wrap gap-2">{tags.map(tag => <span key={tag} className="border border-white/30 bg-black/15 px-3 py-2 text-[8px] uppercase tracking-[.16em] backdrop-blur-md">{tag}</span>)}</div></div>
       </div>
-      <figure ref={insetMedia} data-cursor className="absolute right-[5%] top-[17%] hidden aspect-[3/4] w-[18vw] overflow-hidden border border-white/30 bg-[#222] shadow-2xl md:block md:will-change-transform"><img src={inset} alt="" loading="lazy" decoding="async" className="h-full w-full object-cover grayscale transition-transform duration-500 hover:scale-105 hover:grayscale-0" /></figure>
+      {showInset && <figure ref={insetMedia} data-cursor className="absolute right-[5%] top-[17%] hidden aspect-[3/4] w-[18vw] overflow-hidden border border-white/30 bg-[#222] shadow-2xl md:block md:will-change-transform"><img src={inset} alt="" loading="lazy" decoding="async" className="h-full w-full object-cover grayscale transition-transform duration-500 hover:scale-105 hover:grayscale-0" /></figure>}
       <div className="absolute bottom-0 left-0 h-[3px] w-full bg-white/20"><span className="chapter-progress block h-full origin-left bg-white" /></div>
     </div>
   </article>
 }
 
 function VisualArchive() {
+  const [activeImage, setActiveImage] = useState<number | null>(null)
+  const activeArchiveItem = activeImage === null ? null : visualArchive[activeImage]
+  const closeViewer = () => setActiveImage(null)
+  const showPrevious = () => setActiveImage(current => current === null ? null : (current - 1 + visualArchive.length) % visualArchive.length)
+  const showNext = () => setActiveImage(current => current === null ? null : (current + 1) % visualArchive.length)
+
+  useEffect(() => {
+    if (activeImage === null) return undefined
+    const onKeyDown = (event: KeyboardEvent) => {
+      if (event.key === 'Escape') closeViewer()
+      if (event.key === 'ArrowLeft') showPrevious()
+      if (event.key === 'ArrowRight') showNext()
+    }
+    window.addEventListener('keydown', onKeyDown)
+    return () => window.removeEventListener('keydown', onKeyDown)
+  }, [activeImage])
+
   return <section className="overflow-hidden border-b border-white/15 bg-[#101010] py-20 md:py-32">
     <div className={wrap}>
       <div className="grid items-end gap-8 md:grid-cols-[1.2fr_.8fr]">
@@ -200,7 +223,7 @@ function VisualArchive() {
       </div>
     </div>
 
-    <div className="mt-16 grid auto-rows-[170px] grid-cols-2 gap-1 px-1 md:auto-rows-[260px] md:grid-cols-12">
+    <div className="mt-16 grid auto-rows-[170px] grid-cols-2 gap-1 px-1 md:auto-rows-[260px] md:grid-flow-dense md:grid-cols-12">
       {visualArchive.map(([src, label, number], index) => {
         const layout = [
           'col-span-2 row-span-3 md:col-span-5 md:row-span-3',
@@ -211,16 +234,26 @@ function VisualArchive() {
           'row-span-2 md:col-span-2 md:row-span-2',
           'row-span-2 md:col-span-3 md:row-span-2',
           'col-span-2 row-span-2 md:col-span-3 md:row-span-2',
+          'col-span-2 row-span-2 md:col-span-4 md:row-span-1',
         ][index]
-        return <figure key={number} className={`${layout} group relative m-0 overflow-hidden bg-[#20201f]`}>
+        return <button key={number} type="button" onClick={() => setActiveImage(index)} className={`${layout} group relative m-0 cursor-zoom-in overflow-hidden bg-[#20201f] text-left`} aria-label={`View ${label}`}>
           <img src={src} alt={label} loading="lazy" decoding="async" className="h-full w-full object-cover md:grayscale md:transition-transform md:duration-500 md:ease-out md:group-hover:scale-[1.035] md:group-hover:grayscale-0" />
           <div className="absolute inset-0 bg-gradient-to-t from-black/70 via-transparent to-black/10 opacity-70 transition group-hover:opacity-40" />
           <figcaption className="absolute inset-x-4 bottom-4 flex items-end justify-between text-[8px] uppercase tracking-[.18em] text-white/80 md:inset-x-6 md:bottom-5"><span>{label}</span><span>{number}</span></figcaption>
-        </figure>
+        </button>
       })}
     </div>
 
     <div className={`${wrap} mt-14 flex items-center justify-between border-t border-white/15 pt-7`}><p className="font-display text-2xl italic text-[#aaa69d] md:text-4xl">Every frame should feel lived in.</p><Link to="/projects" className="flex items-center gap-3 text-[9px] uppercase tracking-[.18em]">Explore the archive <ArrowUpRight size={15} /></Link></div>
+    {activeArchiveItem && <div role="dialog" aria-modal="true" aria-label={`Viewing ${activeArchiveItem[1]}`} className="fixed inset-0 z-50 flex items-center justify-center bg-black/95 p-5 md:p-10" onClick={closeViewer}>
+      <button type="button" onClick={closeViewer} className="absolute right-5 top-5 z-10 flex h-11 w-11 items-center justify-center text-white transition hover:bg-white/15 hover:text-white" aria-label="Close image viewer"><X size={20} /></button>
+      <button type="button" onClick={event => { event.stopPropagation(); showPrevious() }} className="absolute left-3 top-1/2 z-10 flex h-12 w-12 -translate-y-1/2 items-center justify-center text-white transition hover:bg-white/15 hover:text-white md:left-7" aria-label="Previous image"><ArrowLeft size={21} /></button>
+      <figure className="relative m-0 flex h-full w-full max-w-6xl flex-col items-center justify-center" onClick={event => event.stopPropagation()}>
+        <img src={activeArchiveItem[0]} alt={activeArchiveItem[1]} className="max-h-[calc(100vh-9rem)] max-w-full object-contain" />
+        <figcaption className="mt-4 flex w-full items-center justify-between text-[10px] uppercase tracking-[.18em] text-white/80"><span>{activeArchiveItem[1]}</span><span>{activeArchiveItem[2]} / {String(visualArchive.length).padStart(2, '0')}</span></figcaption>
+      </figure>
+      <button type="button" onClick={event => { event.stopPropagation(); showNext() }} className="absolute right-3 top-1/2 z-10 flex h-12 w-12 -translate-y-1/2 items-center justify-center text-white transition hover:bg-white/15 hover:text-white md:right-7" aria-label="Next image"><ArrowRight size={21} /></button>
+    </div>}
   </section>
 }
 
