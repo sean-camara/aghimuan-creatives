@@ -1,11 +1,25 @@
+export type ProjectCategory = 'Portraits' | 'Events' | 'Street' | 'Brand'
+export type ProjectSize = 'tall' | 'wide' | 'standard'
+
+export interface Project {
+  id: string
+  title: string
+  category: ProjectCategory
+  year: string
+  size: ProjectSize
+  image: string
+  alt: string
+  type?: 'video'
+}
+
 export const assets = {
   heroPortrait: '/assets/shawn-hero-alpha.webp',
   aboutPortrait: '/assets/shawn-phone-booth-optimized.jpg?v=20260812',
   logo: '/assets/aghimuan-logo-alpha.webp',
   cv: '/assets/shawn-james-camara-cv.jpg',
-}
+} as const
 
-export const projects = [
+export const projects: Project[] = [
   { id: 'nocturne', title: 'Nocturne Study', category: 'Portraits', year: '2026', size: 'tall', image: 'https://images.unsplash.com/photo-1492562080023-ab3db95bfbce?auto=format&fit=crop&w=1200&q=88', alt: 'Portrait in soft studio light' },
   { id: 'after-hours', title: 'After Hours', category: 'Events', year: '2025', size: 'wide', type: 'video', image: 'https://images.unsplash.com/photo-1514525253161-7a46d19cd819?auto=format&fit=crop&w=1400&q=88', alt: 'Crowd under event lights' },
   { id: 'geometry', title: 'Quiet Geometry', category: 'Street', year: '2025', size: 'standard', image: 'https://images.unsplash.com/photo-1497366811353-6870744d04b2?auto=format&fit=crop&w=1200&q=88', alt: 'Geometric architecture' },
@@ -16,25 +30,25 @@ export const projects = [
   { id: 'between-takes', title: 'Between Takes', category: 'Events', year: '2022', size: 'standard', image: 'https://images.unsplash.com/photo-1519741497674-611481863552?auto=format&fit=crop&w=1200&q=88', alt: 'Intimate celebration' },
 ]
 
-export const stats = [['2019', 'Freelance Since'], ['4', 'Creative Disciplines'], ['2D + 3D', 'Animation Training'], ['2026', 'BMA Graduate']]
+export const stats = [['2019', 'Freelance Since'], ['4', 'Creative Disciplines'], ['2D + 3D', 'Animation Training'], ['2026', 'BMA Graduate']] as const
 export const services = [
   ['photography', 'Photography', 'Capturing moments with intent and emotion.'],
   ['videography', 'Videography', 'Creating cinematic films that tell your story.'],
   ['events', 'Event Coverage', 'Documenting events with a storytelling approach.'],
   ['direction', 'Creative Direction', 'Bringing ideas to life with creative vision and strategy.'],
-]
+] as const
 export const socials = [
   ['instagram', 'Instagram', 'https://instagram.com/aghimuancreatives'],
   ['behance', 'Behance', 'https://www.behance.net/aghimuancreatives'],
   ['linkedin', 'LinkedIn', 'https://www.linkedin.com/in/shawn-james-camara'],
-]
+] as const
 export const creativeSkills = [
   'Film storytelling & narrative development', 'Creative direction & concept development',
   'Video editing & reel creation', 'Event & nightlife visual storytelling',
   'Branding & creative identity', 'Graphic layout & portfolio presentation',
   'Live event photography & videography', 'Creative collaboration & adaptability',
 ]
-export const software = ['Adobe Premiere Pro', 'Adobe Lightroom', 'Adobe Photoshop', 'Canva']
+export const software: string[] = ['Adobe Premiere Pro', 'Adobe Lightroom', 'Adobe Photoshop', 'Canva']
 export const visualArchive = [
   [assets.heroPortrait, 'Portrait / Direction', '01'],
   [assets.aboutPortrait, 'Editorial / Story', '02'],
@@ -44,4 +58,4 @@ export const visualArchive = [
   ['https://images.unsplash.com/photo-1500648767791-00dcc994a43e?auto=format&fit=crop&w=1200&q=90', 'People / Character', '06'],
   ['https://images.unsplash.com/photo-1483985988355-763728e1935b?auto=format&fit=crop&w=1400&q=90', 'Fashion / Form', '07'],
   ['https://images.unsplash.com/photo-1497366811353-6870744d04b2?auto=format&fit=crop&w=1400&q=90', 'Space / Geometry', '08'],
-]
+] as const

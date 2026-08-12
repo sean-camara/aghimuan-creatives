@@ -18,6 +18,7 @@ The site presents a visual archive of portrait, nightlife, event, fashion, brand
 ## Tech stack
 
 - React
+- TypeScript 7
 - Vite
 - React Router
 - Tailwind CSS v4
@@ -46,10 +47,10 @@ The optimized output is generated in `dist/`.
 
 ```text
 src/
-├── App.jsx                 # Routes and page composition
-├── config/design.js        # Shared layout and visual tokens
-├── data/portfolio.js       # Portfolio content and asset references
-├── hooks/useRouteScroll.js # Route/hash scroll behavior
+├── App.tsx                 # Routes and page composition
+├── config/design.ts        # Shared layout and visual tokens
+├── data/portfolio.ts       # Typed portfolio content and asset references
+├── hooks/useRouteScroll.ts # Route/hash scroll behavior
 └── styles.css              # Tailwind entry plus browser-level motion rules
 public/assets/              # Local photography, logo, and CV assets
 ```

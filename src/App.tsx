@@ -1,14 +1,14 @@
-import { useEffect, useMemo, useRef, useState } from 'react'
+import { useEffect, useMemo, useRef, useState, type ReactNode } from 'react'
 import { Link, Route, Routes, useLocation } from 'react-router-dom'
 import { ArrowDown, ArrowRight, ArrowUpRight, AtSign, BriefcaseBusiness, CalendarDays, Camera, Download, Layers3, Lightbulb, Menu, Play, Sparkles, Video, X } from 'lucide-react'
 import { layout } from './config/design'
-import { assets, creativeSkills, projects, services, socials, software, stats, visualArchive } from './data/portfolio'
+import { assets, creativeSkills, projects, services, socials, software, stats, visualArchive, type Project } from './data/portfolio'
 import { useRouteScroll } from './hooks/useRouteScroll'
 
 const { heroPortrait, aboutPortrait, logo, cv } = assets
 const { wrap, eyebrow, button } = layout
-const serviceIcons = { photography: Camera, videography: Video, events: CalendarDays, direction: Lightbulb }
-const socialIcons = { instagram: AtSign, behance: Sparkles, linkedin: BriefcaseBusiness }
+const serviceIcons = { photography: Camera, videography: Video, events: CalendarDays, direction: Lightbulb } as const
+const socialIcons = { instagram: AtSign, behance: Sparkles, linkedin: BriefcaseBusiness } as const
 
 export default function App() {
   useRouteScroll()
@@ -16,9 +16,9 @@ export default function App() {
 }
 
 function PageProgress() {
-  const bar = useRef(null)
+  const bar = useRef<HTMLDivElement>(null)
   useEffect(() => {
-    let frame
+    let frame: number | null = null
     const update = () => {
       const max = document.documentElement.scrollHeight - window.innerHeight
       if (bar.current) bar.current.style.transform = `scaleX(${max > 0 ? window.scrollY / max : 0})`
@@ -32,14 +32,14 @@ function PageProgress() {
 }
 
 function CustomCursor() {
-  const dot = useRef(null)
-  const ring = useRef(null)
+  const dot = useRef<HTMLSpanElement>(null)
+  const ring = useRef<HTMLSpanElement>(null)
   useEffect(() => {
     if (!window.matchMedia('(pointer:fine)').matches) return undefined
-    let x = 0; let y = 0; let rx = 0; let ry = 0; let frame; let visible = true
-    const move = event => { x = event.clientX; y = event.clientY; dot.current?.style.setProperty('transform', `translate3d(${x}px,${y}px,0)`) }
+    let x = 0; let y = 0; let rx = 0; let ry = 0; let frame: number | null = null; let visible = true
+    const move = (event: MouseEvent) => { x = event.clientX; y = event.clientY; dot.current?.style.setProperty('transform', `translate3d(${x}px,${y}px,0)`) }
     const animate = () => { rx += (x - rx) * .14; ry += (y - ry) * .14; ring.current?.style.setProperty('transform', `translate3d(${rx}px,${ry}px,0)`); frame = requestAnimationFrame(animate) }
-    const over = event => ring.current?.classList.toggle('is-active', Boolean(event.target.closest('a,button,figure,[data-cursor]')))
+    const over = (event: MouseEvent) => ring.current?.classList.toggle('is-active', Boolean((event.target as Element | null)?.closest('a,button,figure,[data-cursor]')))
     const visibility = () => { visible = !document.hidden; if (visible && !frame) animate(); else if (!visible && frame) { cancelAnimationFrame(frame); frame = null } }
     window.addEventListener('mousemove', move, { passive: true }); document.addEventListener('mouseover', over); document.addEventListener('visibilitychange', visibility); animate()
     return () => { window.removeEventListener('mousemove', move); document.removeEventListener('mouseover', over); document.removeEventListener('visibilitychange', visibility); if (frame) cancelAnimationFrame(frame) }
@@ -47,10 +47,10 @@ function CustomCursor() {
   return <><span ref={dot} className="cursor-dot" /><span ref={ring} className="cursor-ring">View</span></>
 }
 
-function Header({ projectsPage = false }) {
+function Header({ projectsPage = false }: { projectsPage?: boolean }) {
   const [open, setOpen] = useState(false)
   const { pathname } = useLocation()
-  const links = [
+  const links: ReadonlyArray<readonly [string, string]> = [
     ['Home', projectsPage ? '/' : '#hero'],
     ['Projects', '/projects'],
     ['About', projectsPage ? '/#about' : '#about'],
@@ -143,15 +143,25 @@ function Experience() {
   </section>
 }
 
-function ExperienceChapter({ number, eyebrow: label, title, copy, image, inset, tags }) {
-  const scene = useRef(null)
-  const media = useRef(null)
-  const insetMedia = useRef(null)
+interface ExperienceChapterProps {
+  number: string
+  eyebrow: string
+  title: ReactNode
+  copy: string
+  image: string
+  inset: string
+  tags: string[]
+}
+
+function ExperienceChapter({ number, eyebrow: label, title, copy, image, inset, tags }: ExperienceChapterProps) {
+  const scene = useRef<HTMLElement>(null)
+  const media = useRef<HTMLImageElement>(null)
+  const insetMedia = useRef<HTMLElement>(null)
   useEffect(() => {
     if (matchMedia('(prefers-reduced-motion: reduce)').matches || innerWidth < 768) return undefined
-    let frame = null; let active = false
-    const observer = new IntersectionObserver(([entry]) => { active = entry.isIntersecting }, { rootMargin: '100% 0px' })
-    observer.observe(scene.current)
+    let frame: number | null = null; let active = false
+    const observer = new IntersectionObserver(([entry]) => { active = entry?.isIntersecting ?? false }, { rootMargin: '100% 0px' })
+    if (scene.current) observer.observe(scene.current)
     const onScroll = () => {
       if (!active || frame) return
       frame = requestAnimationFrame(() => {
@@ -237,10 +247,10 @@ function Projects() {
 }
 
 function ProjectsHero() {
-  const media = useRef(null)
+  const media = useRef<HTMLImageElement>(null)
   useEffect(() => {
     if (matchMedia('(prefers-reduced-motion: reduce)').matches || innerWidth < 768) return undefined
-    let frame = null
+    let frame: number | null = null
     const onScroll = () => { if (frame) return; frame = requestAnimationFrame(() => { if (media.current) media.current.style.transform = `translate3d(0,${Math.min(scrollY * .12, 110)}px,0) scale(${1 + Math.min(scrollY / 10000, .05)})`; frame = null }) }
     onScroll(); addEventListener('scroll', onScroll, { passive: true }); return () => { removeEventListener('scroll', onScroll); if (frame) cancelAnimationFrame(frame) }
   }, [])
@@ -251,14 +261,14 @@ function ProjectsHero() {
   </section>
 }
 
-function HorizontalProjects({ items }) {
-  const section = useRef(null)
-  const track = useRef(null)
+function HorizontalProjects({ items }: { items: Project[] }) {
+  const section = useRef<HTMLElement>(null)
+  const track = useRef<HTMLDivElement>(null)
   useEffect(() => {
     if (matchMedia('(prefers-reduced-motion: reduce)').matches || innerWidth < 768) return undefined
-    let frame = null; let active = false
-    const observer = new IntersectionObserver(([entry]) => { active = entry.isIntersecting }, { rootMargin: '100% 0px' })
-    observer.observe(section.current)
+    let frame: number | null = null; let active = false
+    const observer = new IntersectionObserver(([entry]) => { active = entry?.isIntersecting ?? false }, { rootMargin: '100% 0px' })
+    if (section.current) observer.observe(section.current)
     const update = () => {
       if (!active || frame) return
       frame = requestAnimationFrame(() => {
@@ -275,12 +285,19 @@ function HorizontalProjects({ items }) {
   return <section ref={section} className="relative py-1 md:h-[420vh] md:py-0"><div className="md:sticky md:top-0 md:h-screen md:overflow-hidden"><div ref={track} className="mobile-swipe flex snap-x snap-mandatory gap-1 overflow-x-auto px-1 md:h-full md:w-max md:snap-none md:items-stretch md:overflow-visible md:px-0 md:will-change-transform">{items.map((item, index) => <figure key={item.id} data-cursor className="group relative m-0 h-[68svh] w-[88vw] shrink-0 snap-center overflow-hidden bg-[#222] md:h-full md:w-[72vw] lg:w-[58vw]"><img src={item.image} alt={item.alt} loading={index === 0 ? 'eager' : 'lazy'} decoding="async" className="h-full w-full object-cover md:grayscale md:transition-transform md:duration-500 md:group-hover:scale-[1.035] md:group-hover:grayscale-0" /><div className="absolute inset-0 bg-gradient-to-t from-black/80 via-transparent to-black/10" /><figcaption className="absolute inset-x-5 bottom-6 flex items-end justify-between md:inset-x-10 md:bottom-10"><div><span className={eyebrow}>{String(index + 1).padStart(2, '0')} / {item.category}</span><h2 className="mt-3 font-display text-4xl tracking-[-.05em] md:text-7xl">{item.title}</h2></div><span className="font-display text-2xl italic text-white/60 md:text-3xl">{item.year}</span></figcaption>{item.type === 'video' && <span className="absolute left-1/2 top-1/2 grid size-16 -translate-x-1/2 -translate-y-1/2 place-items-center rounded-full border border-white/60 md:size-20 md:backdrop-blur-md"><Play size={18} fill="currentColor" /></span>}</figure>)}</div><div className="flex items-center justify-center gap-3 py-5 text-[8px] uppercase tracking-[.2em] text-[#8e8980] md:hidden">Swipe through projects <ArrowRight size={14} /></div></div></section>
 }
 
-function EditorialProject({ item, index }) {
+function EditorialProject({ item, index }: { item: Project; index: number }) {
   const layouts = ['col-span-2 md:col-span-5 md:row-span-3', 'col-span-1 md:col-span-3 md:row-span-2', 'col-span-1 md:col-span-4 md:row-span-2', 'col-span-2 md:col-span-4 md:row-span-2', 'col-span-1 md:col-span-3 md:row-span-3', 'col-span-1 md:col-span-5 md:row-span-2', 'col-span-2 md:col-span-4 md:row-span-2', 'col-span-2 md:col-span-8 md:row-span-2']
-  return <figure data-cursor className={`${layouts[index % layouts.length]} group relative m-0 min-h-[270px] overflow-hidden bg-[#222] sm:min-h-[340px] md:min-h-[520px]`}><img src={item.image} alt={item.alt} loading="lazy" decoding="async" className="h-full w-full object-cover md:grayscale md:transition-transform md:duration-500 md:ease-out md:group-hover:scale-[1.035] md:group-hover:grayscale-0" /><div className="absolute inset-0 bg-gradient-to-t from-black/80 via-transparent to-transparent" /><figcaption className="absolute inset-x-4 bottom-4 flex items-end justify-between md:inset-x-5 md:bottom-5"><div><span className="text-[7px] uppercase tracking-[.16em] text-white/60 md:text-[8px]">{item.category}</span><h3 className="mt-1 max-w-28 font-display text-xl leading-none md:mt-2 md:max-w-none md:text-3xl">{item.title}</h3></div><div className="grid size-8 shrink-0 place-items-center rounded-full border border-white/40 transition duration-300 group-hover:rotate-45 group-hover:bg-white group-hover:text-black md:size-10"><ArrowUpRight size={14} /></div></figcaption></figure>
+  return <figure data-cursor className={`${layouts[index % layouts.length] ?? layouts[0]} group relative m-0 min-h-[270px] overflow-hidden bg-[#222] sm:min-h-[340px] md:min-h-[520px]`}><img src={item.image} alt={item.alt} loading="lazy" decoding="async" className="h-full w-full object-cover md:grayscale md:transition-transform md:duration-500 md:ease-out md:group-hover:scale-[1.035] md:group-hover:grayscale-0" /><div className="absolute inset-0 bg-gradient-to-t from-black/80 via-transparent to-transparent" /><figcaption className="absolute inset-x-4 bottom-4 flex items-end justify-between md:inset-x-5 md:bottom-5"><div><span className="text-[7px] uppercase tracking-[.16em] text-white/60 md:text-[8px]">{item.category}</span><h3 className="mt-1 max-w-28 font-display text-xl leading-none md:mt-2 md:max-w-none md:text-3xl">{item.title}</h3></div><div className="grid size-8 shrink-0 place-items-center rounded-full border border-white/40 transition duration-300 group-hover:rotate-45 group-hover:bg-white group-hover:text-black md:size-10"><ArrowUpRight size={14} /></div></figcaption></figure>
 }
 
-function ProjectCard({ item, featured = false, archive = false, mobileRail = false }) {
+interface ProjectCardProps {
+  item: Project
+  featured?: boolean
+  archive?: boolean
+  mobileRail?: boolean
+}
+
+function ProjectCard({ item, featured = false, archive = false, mobileRail = false }: ProjectCardProps) {
   const [src, setSrc] = useState(item.image)
   const height = featured ? 'aspect-[4/5] md:aspect-square' : item.size === 'tall' ? 'min-h-[520px]' : item.size === 'wide' ? 'min-h-[350px]' : 'min-h-[390px]'
   return <article className={`${archive ? 'mb-2 break-inside-avoid' : ''} ${mobileRail ? 'w-[76vw] shrink-0 snap-center md:w-auto' : ''} group`}><div className={`relative overflow-hidden bg-[#23221f] ${height}`}><img src={src} onError={() => setSrc(heroPortrait)} alt={item.alt} loading="lazy" decoding="async" className="absolute inset-0 h-full w-full object-cover md:grayscale md:transition md:duration-500 md:group-hover:scale-[1.04] md:group-hover:grayscale-0" /><div className="absolute inset-0 bg-gradient-to-t from-black/75 via-transparent to-transparent" />{item.type === 'video' && <span className="absolute right-4 top-4 grid size-8 place-items-center rounded-full border border-white/60"><Play size={12} fill="currentColor" /></span>}<div className={`absolute inset-x-5 bottom-4 flex items-end justify-between transition ${archive ? 'opacity-100' : 'md:translate-y-2 md:opacity-0 md:group-hover:translate-y-0 md:group-hover:opacity-100'}`}><div><h3 className="font-display text-xl">{item.title}</h3><span className="text-[8px] uppercase tracking-[.12em] text-white/70">{item.category}</span></div><span className="text-[8px] tracking-[.1em] text-white/70">{item.year}</span></div></div></article>
