@@ -621,16 +621,12 @@ function FeaturedWork() {
           />
         ))}
       </div>
-      <div className="swipe-prompt mt-5 flex items-center justify-between overflow-hidden border-y border-white/15 py-3 md:hidden">
-        <span className={eyebrow}>Swipe to view</span>
-        <span className="swipe-prompt__arrow" aria-hidden="true">
-          <ArrowRight size={16} />
-        </span>
+      <div className="mt-5 flex justify-end border-y border-white/15 py-3 md:hidden">
         <Link
           to="/projects"
-          className="text-[9px] uppercase tracking-[.15em] transition-colors hover:text-white"
+          className="inline-flex min-h-11 items-center gap-3 border border-white/30 px-5 py-3 text-[9px] uppercase tracking-[.15em] transition-colors hover:border-white hover:bg-white hover:text-black"
         >
-          View all
+          View all <ArrowRight size={14} />
         </Link>
       </div>
       {activeItem && (
@@ -1495,9 +1491,6 @@ function HorizontalProjects({ items }: { items: Project[] }) {
               )}
             </figure>
           ))}
-        </div>
-        <div className="flex items-center justify-center gap-3 py-5 text-[8px] uppercase tracking-[.2em] text-[#8e8980] md:hidden">
-          Swipe through projects <ArrowRight size={14} />
         </div>
       </div>
     </section>
