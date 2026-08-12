@@ -391,7 +391,7 @@ function Home() {
             </p>
             <span className="mt-4 block w-16 border-t border-white/80 md:ml-2 md:mt-7 md:w-24" />
           </div>
-          <div className="absolute bottom-[4%] left-[5%] top-[23%] z-10 w-[96%] md:bottom-0 md:left-[25%] md:top-[16%] md:w-[57%]">
+          <div className="absolute bottom-[4%] left-[5%] top-[23%] z-30 w-[96%] md:bottom-0 md:left-[25%] md:top-[16%] md:w-[57%]">
             <img
               src={heroPortrait}
               alt="Shawn seated in a tailored jacket"
@@ -400,7 +400,7 @@ function Home() {
               className="h-full w-full object-contain object-bottom grayscale"
             />
           </div>
-          <aside className="absolute bottom-[8%] right-0 z-30 hidden w-[48%] md:bottom-auto md:top-[43%] md:block md:w-[min(25vw,350px)]">
+          <aside className="absolute bottom-[8%] right-0 z-40 hidden w-[48%] md:bottom-auto md:top-[43%] md:block md:w-[min(25vw,350px)]">
             <p className="text-[15px] leading-relaxed text-[#e5e1da] md:text-[clamp(19px,1.55vw,26px)]">
               Photography and video for events, nightlife, portraits, brands,
               cars, and properties.
