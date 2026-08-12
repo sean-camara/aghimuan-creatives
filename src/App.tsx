@@ -1159,12 +1159,14 @@ function Projects() {
               ))}
             </div>
             {totalPages > 1 && (
-              <ArchivePagination
-                page={page}
-                totalPages={totalPages}
-                onChange={changePage}
-                compact
-              />
+              <div className="hidden md:block">
+                <ArchivePagination
+                  page={page}
+                  totalPages={totalPages}
+                  onChange={changePage}
+                  compact
+                />
+              </div>
             )}
           </div>
         </div>
