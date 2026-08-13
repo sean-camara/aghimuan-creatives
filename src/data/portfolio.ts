@@ -594,13 +594,58 @@ export const software: string[] = [
   "Canva",
 ];
 export const visualArchive = [
-  ["/assets/sny08914.jpg", "Portrait / Direction", "01"],
-  ["/assets/editorial-story.webp", "Editorial / Story", "02"],
-  ["/assets/nightlife-energy.webp", "Nightlife / Energy", "03"],
-  ["/assets/live-atmosphere.webp", "Live / Atmosphere", "04"],
-  ["/assets/film-production.webp", "Film / Production", "05"],
-  ["/assets/people-character.webp", "People / Character", "06"],
-  ["/assets/fashion-form.webp", "Fashion / Form", "07"],
-  ["/assets/space-geometry.webp", "Space / Geometry", "08"],
-  ["/assets/pasanin-cast.webp", "PASANIN / Cast", "09"],
+  {
+    id: "portrait-direction",
+    src: "/assets/sny08914.jpg",
+    label: "Portrait / Direction",
+    number: "01",
+  },
+  {
+    id: "editorial-story",
+    src: "/assets/editorial-story.webp",
+    label: "Editorial / Story",
+    number: "02",
+  },
+  {
+    id: "nightlife-energy",
+    src: "/assets/nightlife-energy.webp",
+    label: "Nightlife / Energy",
+    number: "03",
+  },
+  {
+    id: "live-atmosphere",
+    src: "/assets/live-atmosphere.webp",
+    label: "Live / Atmosphere",
+    number: "04",
+  },
+  {
+    id: "film-production",
+    src: "/assets/film-production.webp",
+    label: "Film / Production",
+    number: "05",
+  },
+  {
+    id: "people-character",
+    src: "/assets/people-character.webp",
+    label: "People / Character",
+    number: "06",
+  },
+  {
+    id: "fashion-form",
+    src: "/assets/fashion-form.webp",
+    label: "Fashion / Form",
+    number: "07",
+  },
+  {
+    id: "space-geometry",
+    src: "/assets/space-geometry.webp",
+    label: "Space / Geometry",
+    number: "08",
+  },
+  {
+    id: "pasanin-cast",
+    src: "/assets/pasanin-cast.webp",
+    label: "PASANIN / Cast",
+    number: "09",
+  },
 ] as const;

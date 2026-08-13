@@ -1,5 +1,11 @@
 import { useEffect, useMemo, useRef, useState, type ReactNode } from "react";
-import { Link, Route, Routes, useLocation } from "react-router-dom";
+import {
+  Link,
+  Route,
+  Routes,
+  useLocation,
+  useNavigate,
+} from "react-router-dom";
 import {
   ArrowDown,
   ArrowLeft,
@@ -28,6 +34,13 @@ import {
   visualArchive,
   type Project,
 } from "./data/portfolio";
+import {
+  hasLayerSearchParams,
+  parseOverlay,
+  removeLayerSearchParams,
+  toSearchString,
+  useNavigationLayers,
+} from "./hooks/useNavigationLayers";
 import { useRouteScroll } from "./hooks/useRouteScroll";
 
 const { heroPortrait, aboutPortrait, logo, cv } = assets;
@@ -40,19 +53,41 @@ const serviceIcons = {
 } as const;
 const archiveFilters: ReadonlyArray<{
   label: string;
+  slug: string;
   matches: (project: Project) => boolean;
 }> = [
-  { label: "All Works", matches: () => true },
-  { label: "Event", matches: (project) => project.category === "Events" },
+  { label: "All Works", slug: "all", matches: () => true },
+  {
+    label: "Event",
+    slug: "event",
+    matches: (project) => project.category === "Events",
+  },
   {
     label: "Portrait",
+    slug: "portrait",
     matches: (project) =>
       project.category === "Portraits" || project.category === "Fashion",
   },
-  { label: "Club", matches: (project) => project.category === "Club" },
-  { label: "Car", matches: (project) => project.category === "Automotive" },
-  { label: "Airbnb", matches: (project) => project.category === "Airbnb" },
-  { label: "Videos", matches: (project) => project.type === "video" },
+  {
+    label: "Club",
+    slug: "club",
+    matches: (project) => project.category === "Club",
+  },
+  {
+    label: "Car",
+    slug: "car",
+    matches: (project) => project.category === "Automotive",
+  },
+  {
+    label: "Airbnb",
+    slug: "airbnb",
+    matches: (project) => project.category === "Airbnb",
+  },
+  {
+    label: "Videos",
+    slug: "videos",
+    matches: (project) => project.type === "video",
+  },
 ];
 
 const archivePageSize = 8;
@@ -96,10 +131,106 @@ const curateAllWorks = (items: Project[]) => {
   });
 };
 
+function NavigationStateGuard() {
+  const location = useLocation();
+  const navigate = useNavigate();
+
+  useEffect(() => {
+    const params = new URLSearchParams(location.search);
+    const isProjectsRoute = ["/projects", "/portfolio"].includes(
+      location.pathname,
+    );
+    const hasLayer = hasLayerSearchParams(location.search);
+    const overlay = parseOverlay(location.search);
+    let changed = false;
+
+    if (!isProjectsRoute) {
+      if (params.has("filter")) {
+        params.delete("filter");
+        changed = true;
+      }
+      if (params.has("page")) {
+        params.delete("page");
+        changed = true;
+      }
+    }
+
+    if (hasLayer) {
+      const menu = params.get("menu");
+      if (menu !== null && menu !== "open") {
+        params.delete("menu");
+        changed = true;
+      }
+
+      if (overlay && params.has("menu")) {
+        params.delete("menu");
+        changed = true;
+      }
+
+      if (!overlay && params.has("overlay")) {
+        params.delete("overlay");
+        params.delete("source");
+        params.delete("id");
+        changed = true;
+      }
+
+      if (!overlay && !params.has("overlay")) {
+        if (params.has("source")) {
+          params.delete("source");
+          changed = true;
+        }
+        if (params.has("id")) {
+          params.delete("id");
+          changed = true;
+        }
+      }
+
+      if (overlay) {
+        const validOverlay =
+          overlay.kind === "video"
+            ? isProjectsRoute &&
+              projects.some(
+                (project) => project.id === overlay.id && project.type === "video",
+              )
+            : overlay.source === "projects"
+              ? isProjectsRoute &&
+                projects.some(
+                  (project) => project.id === overlay.id && project.type !== "video",
+                )
+              : location.pathname === "/" &&
+                (overlay.source === "featured"
+                  ? featuredProjects.some((project) => project.id === overlay.id)
+                  : visualArchive.some((item) => item.id === overlay.id));
+
+        if (!validOverlay) {
+          params.delete("overlay");
+          params.delete("source");
+          params.delete("id");
+          changed = true;
+        }
+      }
+    }
+
+    if (!changed) return;
+
+    navigate(
+      {
+        pathname: location.pathname,
+        search: toSearchString(params),
+        hash: location.hash,
+      },
+      { replace: true, preventScrollReset: true },
+    );
+  }, [location.hash, location.pathname, location.search, navigate]);
+
+  return null;
+}
+
 export default function App() {
   useRouteScroll();
   return (
     <>
+      <NavigationStateGuard />
       <PageProgress />
       <CustomCursor />
       <Routes>
@@ -207,13 +338,13 @@ function CustomCursor() {
 }
 
 function Header({ projectsPage = false }: { projectsPage?: boolean }) {
-  const [open, setOpen] = useState(false);
   const [navVisible, setNavVisible] = useState(false);
   const [scrolled, setScrolled] = useState(false);
   const lastScrollY = useRef(0);
   const hideTimer = useRef<number | null>(null);
   const navigationRef = useRef<HTMLElement>(null);
   const { pathname } = useLocation();
+  const { menuOpen, openMenu, closeLayer } = useNavigationLayers();
   const navigationGroups: ReadonlyArray<{
     label: string;
     active: boolean;
@@ -223,12 +354,12 @@ function Header({ projectsPage = false }: { projectsPage?: boolean }) {
       label: "Home",
       active: !projectsPage,
       links: [
-        ["Overview", projectsPage ? "/#hero" : "#hero"],
-        ["About Shawn", projectsPage ? "/#about" : "#about"],
-        ["Experience", projectsPage ? "/#experience" : "#experience"],
-        ["Services", projectsPage ? "/#services" : "#services"],
-        ["Featured Work", projectsPage ? "/#featured-work" : "#featured-work"],
-        ["Contact", projectsPage ? "/#contact" : "#contact"],
+        ["Overview", "/#hero"],
+        ["About Shawn", "/#about"],
+        ["Experience", "/#experience"],
+        ["Services", "/#services"],
+        ["Featured Work", "/#featured-work"],
+        ["Contact", "/#contact"],
       ],
     },
     {
@@ -275,16 +406,16 @@ function Header({ projectsPage = false }: { projectsPage?: boolean }) {
   }, []);
 
   useEffect(() => {
-    if (!open) return;
+    if (!menuOpen) return;
 
     const previousOverflow = document.body.style.overflow;
     document.body.style.overflow = "hidden";
     return () => {
       document.body.style.overflow = previousOverflow;
     };
-  }, [open]);
+  }, [menuOpen]);
 
-  const showNav = !scrolled || navVisible || open;
+  const showNav = !scrolled || navVisible || menuOpen;
 
   return (
     <header
@@ -292,9 +423,8 @@ function Header({ projectsPage = false }: { projectsPage?: boolean }) {
     >
       <div className={`${wrap} flex h-24 items-center justify-between`}>
         <Link
-          to={projectsPage ? "/" : "#hero"}
+          to={projectsPage ? "/" : "/#hero"}
           aria-label="Aghimuan Creatives home"
-          onClick={() => setOpen(false)}
           className="relative z-50"
         >
           <img
@@ -310,7 +440,7 @@ function Header({ projectsPage = false }: { projectsPage?: boolean }) {
           ref={navigationRef}
           id="primary-navigation"
           aria-label="Primary navigation"
-          className={`${open ? "translate-x-0 opacity-100" : "pointer-events-none translate-x-full opacity-0"} absolute left-0 top-0 z-40 flex h-dvh w-screen flex-col justify-start overflow-y-auto bg-[#151514] px-6 pb-10 pt-28 transition duration-300 md:pointer-events-auto md:static md:h-auto md:w-auto md:flex-row md:translate-x-0 md:items-center md:gap-10 md:overflow-visible md:bg-transparent md:p-0 md:opacity-100`}
+          className={`${menuOpen ? "translate-x-0 opacity-100" : "pointer-events-none translate-x-full opacity-0"} absolute left-0 top-0 z-40 flex h-dvh w-screen flex-col justify-start overflow-y-auto bg-[#151514] px-6 pb-10 pt-28 transition duration-300 md:pointer-events-auto md:static md:h-auto md:w-auto md:flex-row md:translate-x-0 md:items-center md:gap-10 md:overflow-visible md:bg-transparent md:p-0 md:opacity-100`}
         >
           {navigationGroups.map((group) => (
             <details
@@ -342,7 +472,6 @@ function Header({ projectsPage = false }: { projectsPage?: boolean }) {
                     key={`${group.label}-${label}`}
                     to={to}
                     onClick={(event) => {
-                      setOpen(false);
                       event.currentTarget
                         .closest("details")
                         ?.removeAttribute("open");
@@ -358,13 +487,13 @@ function Header({ projectsPage = false }: { projectsPage?: boolean }) {
         </nav>
         <button
           type="button"
-          aria-label={open ? "Close navigation" : "Open navigation"}
-          aria-expanded={open}
+          aria-label={menuOpen ? "Close navigation" : "Open navigation"}
+          aria-expanded={menuOpen}
           aria-controls="primary-navigation"
-          onClick={() => setOpen(!open)}
+          onClick={menuOpen ? closeLayer : openMenu}
           className="relative z-50 grid size-10 place-items-center border border-white/20 md:hidden"
         >
-          {open ? <X size={20} /> : <Menu size={21} />}
+          {menuOpen ? <X size={20} /> : <Menu size={21} />}
         </button>
       </div>
     </header>
@@ -390,6 +519,12 @@ function Home() {
               <em className="font-display text-white">multimedia creative</em>
             </p>
             <span className="mt-4 block w-16 border-t border-white/80 md:ml-2 md:mt-7 md:w-24" />
+            <Link
+              to="/projects"
+              className={`${button} mt-7 bg-[#e9e6df] text-[#151514] hover:bg-transparent hover:text-white md:ml-2`}
+            >
+              View projects <ArrowRight size={16} />
+            </Link>
           </div>
           <div className="absolute bottom-[4%] left-[5%] top-[23%] z-30 w-[96%] md:bottom-0 md:left-[25%] md:top-[16%] md:w-[57%]">
             <img
@@ -577,20 +712,36 @@ function Home() {
 }
 
 function FeaturedWork() {
-  const [activeImage, setActiveImage] = useState<number | null>(null);
+  const { overlay, openOverlay, replaceOverlay, closeLayer } =
+    useNavigationLayers();
+  const activeImageIndex =
+    overlay?.kind === "image" && overlay.source === "featured"
+      ? featuredProjects.findIndex((project) => project.id === overlay.id)
+      : -1;
   const activeItem =
-    activeImage === null ? null : featuredProjects[activeImage];
-  const closeViewer = () => setActiveImage(null);
-  const showPrevious = () =>
-    setActiveImage((current) =>
-      current === null
-        ? null
-        : (current - 1 + featuredProjects.length) % featuredProjects.length,
-    );
-  const showNext = () =>
-    setActiveImage((current) =>
-      current === null ? null : (current + 1) % featuredProjects.length,
-    );
+    activeImageIndex >= 0 ? featuredProjects[activeImageIndex] : undefined;
+  const showPrevious = () => {
+    if (activeImageIndex < 0) return;
+    const nextIndex =
+      (activeImageIndex - 1 + featuredProjects.length) % featuredProjects.length;
+    const nextItem = featuredProjects[nextIndex];
+    if (nextItem)
+      replaceOverlay({
+        kind: "image",
+        source: "featured",
+        id: nextItem.id,
+      });
+  };
+  const showNext = () => {
+    if (activeImageIndex < 0) return;
+    const nextItem = featuredProjects[(activeImageIndex + 1) % featuredProjects.length];
+    if (nextItem)
+      replaceOverlay({
+        kind: "image",
+        source: "featured",
+        id: nextItem.id,
+      });
+  };
 
   return (
     <section id="featured-work" className={`${wrap} py-20 md:py-32`}>
@@ -613,11 +764,13 @@ function FeaturedWork() {
         </Link>
       </div>
       <div className="mobile-swipe -mx-5 mt-10 flex snap-x snap-mandatory gap-2 overflow-x-auto px-5 pb-4 md:mx-0 md:grid md:grid-cols-2 md:overflow-visible md:px-0 md:pb-0 lg:grid-cols-4">
-        {featuredProjects.map((item, index) => (
+        {featuredProjects.map((item) => (
           <FeaturedProjectCard
             key={item.id}
             item={item}
-            onClick={() => setActiveImage(index)}
+            onClick={() =>
+              openOverlay({ kind: "image", source: "featured", id: item.id })
+            }
           />
         ))}
       </div>
@@ -634,9 +787,9 @@ function FeaturedWork() {
           src={activeItem.image}
           alt={activeItem.alt}
           label={`${activeItem.title} / ${activeItem.category}`}
-          counter={String((activeImage ?? 0) + 1).padStart(2, "0")}
+          counter={String(activeImageIndex + 1).padStart(2, "0")}
           total={featuredProjects.length}
-          onClose={closeViewer}
+          onClose={closeLayer}
           onPrevious={showPrevious}
           onNext={showNext}
         />
@@ -858,20 +1011,37 @@ function ExperienceChapter({
 }
 
 function VisualArchive() {
-  const [activeImage, setActiveImage] = useState<number | null>(null);
+  const { overlay, openOverlay, replaceOverlay, closeLayer } =
+    useNavigationLayers();
+  const activeImageIndex =
+    overlay?.kind === "image" && overlay.source === "visual-archive"
+      ? visualArchive.findIndex((item) => item.id === overlay.id)
+      : -1;
   const activeArchiveItem =
-    activeImage === null ? null : visualArchive[activeImage];
-  const closeViewer = () => setActiveImage(null);
-  const showPrevious = () =>
-    setActiveImage((current) =>
-      current === null
-        ? null
-        : (current - 1 + visualArchive.length) % visualArchive.length,
-    );
-  const showNext = () =>
-    setActiveImage((current) =>
-      current === null ? null : (current + 1) % visualArchive.length,
-    );
+    activeImageIndex >= 0 ? visualArchive[activeImageIndex] : undefined;
+  const showPrevious = () => {
+    if (activeImageIndex < 0) return;
+    const nextItem =
+      visualArchive[
+        (activeImageIndex - 1 + visualArchive.length) % visualArchive.length
+      ];
+    if (nextItem)
+      replaceOverlay({
+        kind: "image",
+        source: "visual-archive",
+        id: nextItem.id,
+      });
+  };
+  const showNext = () => {
+    if (activeImageIndex < 0) return;
+    const nextItem = visualArchive[(activeImageIndex + 1) % visualArchive.length];
+    if (nextItem)
+      replaceOverlay({
+        kind: "image",
+        source: "visual-archive",
+        id: nextItem.id,
+      });
+  };
 
   return (
     <section className="overflow-hidden border-b border-white/15 bg-[#101010] py-20 md:py-32">
@@ -893,7 +1063,7 @@ function VisualArchive() {
       </div>
 
       <div className="mt-16 grid auto-rows-[170px] grid-cols-2 gap-1 px-1 md:auto-rows-[260px] md:grid-flow-dense md:grid-cols-12">
-        {visualArchive.map(([src, label, number], index) => {
+        {visualArchive.map((item, index) => {
           const layout = [
             "col-span-2 row-span-3 md:col-span-5 md:row-span-3",
             "row-span-2 md:col-span-3 md:row-span-2",
@@ -907,23 +1077,29 @@ function VisualArchive() {
           ][index];
           return (
             <button
-              key={number}
+              key={item.id}
               type="button"
-              onClick={() => setActiveImage(index)}
+              onClick={() =>
+                openOverlay({
+                  kind: "image",
+                  source: "visual-archive",
+                  id: item.id,
+                })
+              }
               className={`${layout} group relative m-0 cursor-zoom-in overflow-hidden bg-[#20201f] text-left`}
-              aria-label={`View ${label}`}
+              aria-label={`View ${item.label}`}
             >
               <img
-                src={src}
-                alt={label}
+                src={item.src}
+                alt={item.label}
                 loading="lazy"
                 decoding="async"
                 className="h-full w-full object-cover md:grayscale md:transition-transform md:duration-500 md:ease-out md:group-hover:scale-[1.035] md:group-hover:grayscale-0"
               />
               <div className="absolute inset-0 bg-gradient-to-t from-black/70 via-transparent to-black/10 opacity-70 transition group-hover:opacity-40" />
               <figcaption className="absolute inset-x-4 bottom-4 flex items-end justify-between text-[8px] uppercase tracking-[.18em] text-white/80 md:inset-x-6 md:bottom-5">
-                <span>{label}</span>
-                <span>{number}</span>
+                <span>{item.label}</span>
+                <span>{item.number}</span>
               </figcaption>
             </button>
           );
@@ -931,26 +1107,30 @@ function VisualArchive() {
       </div>
 
       <div
-        className={`${wrap} mt-14 flex items-center justify-between border-t border-white/15 pt-7`}
+        className={`${wrap} mt-14 flex flex-col items-start gap-7 border-t border-white/15 pt-7 md:gap-8`}
       >
-        <p className="font-display text-2xl italic text-[#aaa69d] md:text-4xl">
+        <p className="max-w-xl font-display text-2xl italic text-[#aaa69d] md:text-4xl">
           More work is available in the full archive.
         </p>
         <Link
           to="/projects"
-          className="flex items-center gap-3 text-[9px] uppercase tracking-[.18em]"
+          className={`${button} group self-start`}
         >
-          View all projects <ArrowUpRight size={15} />
+          View all projects
+          <ArrowUpRight
+            size={15}
+            className="transition-transform duration-300 group-hover:translate-x-1 group-hover:-translate-y-1"
+          />
         </Link>
       </div>
       {activeArchiveItem && (
         <ImageViewer
-          src={activeArchiveItem[0]}
-          alt={activeArchiveItem[1]}
-          label={activeArchiveItem[1]}
-          counter={activeArchiveItem[2]}
+          src={activeArchiveItem.src}
+          alt={activeArchiveItem.label}
+          label={activeArchiveItem.label}
+          counter={activeArchiveItem.number}
           total={visualArchive.length}
-          onClose={closeViewer}
+          onClose={closeLayer}
           onPrevious={showPrevious}
           onNext={showNext}
         />
@@ -998,7 +1178,10 @@ function ImageViewer({
     >
       <button
         type="button"
-        onClick={onClose}
+        onClick={(event) => {
+          event.stopPropagation();
+          onClose();
+        }}
         className="absolute right-5 top-5 z-10 flex h-11 w-11 items-center justify-center text-white transition hover:bg-white/15 hover:text-white"
         aria-label="Close image viewer"
       >
@@ -1047,50 +1230,134 @@ function ImageViewer({
 }
 
 function Projects() {
-  const [filter, setFilter] = useState("All Works");
-  const [page, setPage] = useState(1);
-  const [activeVideo, setActiveVideo] = useState<Project | null>(null);
-  const [activeImageId, setActiveImageId] = useState<string | null>(null);
+  const location = useLocation();
+  const navigate = useNavigate();
+  const { overlay, openOverlay, replaceOverlay, closeLayer } =
+    useNavigationLayers();
   const archiveGrid = useRef<HTMLDivElement>(null);
+  const archiveQuery = useMemo(() => {
+    const params = new URLSearchParams(location.search);
+    const requestedFilter = params.get("filter") ?? "all";
+    const selectedFilter =
+      archiveFilters.find(({ slug }) => slug === requestedFilter) ??
+      archiveFilters.find(({ slug }) => slug === "all")!;
+    const requestedPageValue = Number(params.get("page"));
+    const requestedPage =
+      Number.isInteger(requestedPageValue) && requestedPageValue > 0
+        ? requestedPageValue
+        : 1;
+
+    return {
+      filter: selectedFilter.label,
+      filterSlug: selectedFilter.slug,
+      matches: selectedFilter.matches,
+      requestedPage,
+    };
+  }, [location.search]);
+  const { filter, filterSlug, matches, requestedPage } = archiveQuery;
   const filteredProjects = useMemo(() => {
-    const matches =
-      archiveFilters.find(({ label }) => label === filter)?.matches ??
-      (() => true);
     const matchingProjects = projects.filter(matches);
-    return filter === "All Works"
+    return filterSlug === "all"
       ? curateAllWorks(matchingProjects)
       : matchingProjects;
-  }, [filter]);
+  }, [filterSlug, matches]);
   const viewableProjects = useMemo(
     () => filteredProjects.filter((project) => project.type !== "video"),
     [filteredProjects],
   );
-  const activeImageIndex = activeImageId
-    ? viewableProjects.findIndex((project) => project.id === activeImageId)
-    : -1;
-  const activeImage =
-    activeImageIndex >= 0 ? viewableProjects[activeImageIndex] : undefined;
+  const allViewableProjects = useMemo(
+    () => projects.filter((project) => project.type !== "video"),
+    [],
+  );
   const totalPages = Math.max(
     1,
     Math.ceil(filteredProjects.length / archivePageSize),
   );
+  const page = Math.min(requestedPage, totalPages);
   const shown = useMemo(() => {
     const start = (page - 1) * archivePageSize;
     return filteredProjects.slice(start, start + archivePageSize);
   }, [filteredProjects, page]);
+  const activeImage =
+    overlay?.kind === "image" && overlay.source === "projects"
+      ? allViewableProjects.find((project) => project.id === overlay.id)
+      : undefined;
+  const imageNavigationProjects = activeImage
+    ? viewableProjects.some((project) => project.id === activeImage.id)
+      ? viewableProjects
+      : allViewableProjects
+    : viewableProjects;
+  const activeImageIndex = activeImage
+    ? imageNavigationProjects.findIndex((project) => project.id === activeImage.id)
+    : -1;
+  const activeVideo =
+    overlay?.kind === "video"
+      ? projects.find(
+          (project) => project.id === overlay.id && project.type === "video",
+        )
+      : undefined;
 
   useEffect(() => {
-    setPage((current) => Math.min(current, totalPages));
-  }, [totalPages]);
+    const params = new URLSearchParams(location.search);
+    if (filterSlug === "all") params.delete("filter");
+    else params.set("filter", filterSlug);
+    if (page === 1) params.delete("page");
+    else params.set("page", String(page));
 
-  useEffect(() => {
-    setActiveImageId(null);
-  }, [filter]);
+    const normalizedSearch = toSearchString(params);
+    if (normalizedSearch === location.search) return;
+
+    navigate(
+      {
+        pathname: location.pathname,
+        search: normalizedSearch,
+        hash: location.hash,
+      },
+      { replace: true, preventScrollReset: true },
+    );
+  }, [
+    filterSlug,
+    location.hash,
+    location.pathname,
+    location.search,
+    navigate,
+    page,
+  ]);
+
+  const changeFilter = (nextFilterSlug: string) => {
+    if (nextFilterSlug === filterSlug && page === 1) return;
+    const params = new URLSearchParams(
+      removeLayerSearchParams(location.search),
+    );
+    if (nextFilterSlug === "all") params.delete("filter");
+    else params.set("filter", nextFilterSlug);
+    params.delete("page");
+    navigate(
+      {
+        pathname: location.pathname,
+        search: toSearchString(params),
+        hash: location.hash,
+      },
+      { preventScrollReset: true },
+    );
+  };
 
   const changePage = (nextPage: number) => {
     const target = Math.min(Math.max(nextPage, 1), totalPages);
     if (target === page) return;
-    setPage(target);
+    const params = new URLSearchParams(
+      removeLayerSearchParams(location.search),
+    );
+    if (target === 1) params.delete("page");
+    else params.set("page", String(target));
+    navigate(
+      {
+        pathname: location.pathname,
+        search: toSearchString(params),
+        hash: location.hash,
+      },
+      { preventScrollReset: true },
+    );
     requestAnimationFrame(() =>
       archiveGrid.current?.scrollIntoView({
         behavior: matchMedia("(prefers-reduced-motion: reduce)").matches
@@ -1137,14 +1404,11 @@ function Projects() {
           </div>
           <div className="sticky top-0 z-30 mt-14 flex items-center justify-between gap-6 border-y border-white/15 bg-[#101010]/95 py-3 backdrop-blur-xl">
             <div className="mobile-swipe flex min-w-0 flex-nowrap items-center gap-6 overflow-x-auto md:gap-8">
-              {archiveFilters.map(({ label }) => (
+              {archiveFilters.map(({ label, slug }) => (
                 <button
                   type="button"
                   key={label}
-                  onClick={() => {
-                    setFilter(label);
-                    setPage(1);
-                  }}
+                  onClick={() => changeFilter(slug)}
                   className={`relative shrink-0 py-2 text-[9px] uppercase tracking-[.14em] transition ${filter === label ? "text-white" : "text-[#69665f] hover:text-white"}`}
                 >
                   <span>{label}</span>
@@ -1176,14 +1440,16 @@ function Projects() {
                 key={item.id}
                 item={item}
                 index={index}
-                onPlay={() => setActiveVideo(item)}
+                onPlay={() => openOverlay({ kind: "video", id: item.id })}
               />
             ) : (
               <EditorialProject
                 key={item.id}
                 item={item}
                 index={index}
-                onView={() => setActiveImageId(item.id)}
+                onView={() =>
+                  openOverlay({ kind: "image", source: "projects", id: item.id })
+                }
               />
             ),
           )}
@@ -1204,7 +1470,7 @@ function Projects() {
           src={activeVideo.video}
           poster={activeVideo.image}
           title={activeVideo.title}
-          onClose={() => setActiveVideo(null)}
+          onClose={closeLayer}
         />
       )}
       {activeImage && (
@@ -1213,22 +1479,35 @@ function Projects() {
           alt={activeImage.alt}
           label={activeImage.title}
           counter={String(activeImageIndex + 1).padStart(2, "0")}
-          total={viewableProjects.length}
-          onClose={() => setActiveImageId(null)}
-          onPrevious={() =>
-            setActiveImageId(
-              viewableProjects[
-                (activeImageIndex - 1 + viewableProjects.length) %
-                  viewableProjects.length
-              ]?.id ?? null,
-            )
-          }
-          onNext={() =>
-            setActiveImageId(
-              viewableProjects[(activeImageIndex + 1) % viewableProjects.length]
-                ?.id ?? null,
-            )
-          }
+          total={imageNavigationProjects.length}
+          onClose={closeLayer}
+          onPrevious={() => {
+            if (activeImageIndex < 0) return;
+            const nextImage =
+              imageNavigationProjects[
+                (activeImageIndex - 1 + imageNavigationProjects.length) %
+                  imageNavigationProjects.length
+              ];
+            if (nextImage)
+              replaceOverlay({
+                kind: "image",
+                source: "projects",
+                id: nextImage.id,
+              });
+          }}
+          onNext={() => {
+            if (activeImageIndex < 0) return;
+            const nextImage =
+              imageNavigationProjects[
+                (activeImageIndex + 1) % imageNavigationProjects.length
+              ];
+            if (nextImage)
+              replaceOverlay({
+                kind: "image",
+                source: "projects",
+                id: nextImage.id,
+              });
+          }}
         />
       )}
 
@@ -1589,13 +1868,16 @@ function VideoViewer({
     <div
       role="dialog"
       aria-modal="true"
-      aria-label={`Playing ${title}`}
+      aria-label={`Viewing video ${title}`}
       className="fixed inset-0 z-[70] grid place-items-center bg-black/95 p-4 md:p-8"
       onClick={onClose}
     >
       <button
         type="button"
-        onClick={onClose}
+        onClick={(event) => {
+          event.stopPropagation();
+          onClose();
+        }}
         className="absolute right-5 top-5 z-10 grid size-11 place-items-center text-white transition hover:bg-white/15"
         aria-label="Close video"
       >
@@ -1609,7 +1891,6 @@ function VideoViewer({
           src={src}
           poster={poster}
           controls
-          autoPlay
           playsInline
           preload="metadata"
           className="min-h-0 max-h-[calc(100vh-6rem)] max-w-full bg-black object-contain"
