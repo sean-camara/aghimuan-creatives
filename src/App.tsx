@@ -509,7 +509,7 @@ function Home() {
       >
         <Header />
         <div className={`${wrap} relative min-h-[760px] md:min-h-dvh`}>
-          <div className="absolute left-0 top-[15%] z-20 md:top-[25%]">
+          <div className="absolute left-0 top-[15%] md:top-[25%]">
             <h1 className="font-display text-[clamp(58px,18vw,84px)] uppercase leading-[.88] tracking-[-.055em] md:text-[clamp(78px,10.2vw,158px)]">
               <span className="block">Shawn</span>
               <span className="block">Camara</span>
@@ -521,7 +521,7 @@ function Home() {
             <span className="mt-4 block w-16 border-t border-white/80 md:ml-2 md:mt-7 md:w-24" />
             <Link
               to="/projects"
-              className={`${button} mt-7 bg-[#e9e6df] text-[#151514] hover:bg-transparent hover:text-white md:ml-2`}
+              className={`${button} relative z-40 mt-7 bg-[#e9e6df] text-[#151514] hover:bg-transparent hover:text-white md:ml-2`}
             >
               View projects <ArrowRight size={16} />
             </Link>
