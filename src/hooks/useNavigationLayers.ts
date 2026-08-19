@@ -124,6 +124,7 @@ export function useNavigationLayers() {
   const replaceOverlay = useCallback(
     (nextOverlay: OverlayState) => {
       const params = new URLSearchParams(location.search);
+      const historyState = readLayerHistoryState(location.state);
       params.delete("menu");
       params.set("overlay", nextOverlay.kind);
       params.set("id", nextOverlay.id);
@@ -134,10 +135,12 @@ export function useNavigationLayers() {
       }
       navigateLayer(toSearchString(params), {
         replace: true,
-        state: { layerEntry: "overlay" },
+        ...(historyState?.layerEntry === "overlay"
+          ? { state: { layerEntry: "overlay" as const } }
+          : {}),
       });
     },
-    [location.search, navigateLayer],
+    [location.search, location.state, navigateLayer],
   );
 
   const openMenu = useCallback(() => {

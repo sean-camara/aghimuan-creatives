@@ -14,6 +14,7 @@
 @layer base {
   html {
     scroll-behavior: smooth;
+    scroll-padding-top: 6rem;
     scrollbar-color: #8f8a82 #151514;
     scrollbar-width: thin;
   }
@@ -32,6 +33,10 @@
   }
   button {
     font: inherit;
+  }
+  :focus-visible {
+    outline: 2px solid #e9e6df;
+    outline-offset: 3px;
   }
   img {
     display: block;

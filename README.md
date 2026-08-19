@@ -47,11 +47,13 @@ The optimized output is generated in `dist/`.
 
 ```text
 src/
-├── App.tsx                 # Routes and page composition
-├── config/design.ts        # Shared layout and visual tokens
-├── data/portfolio.ts       # Typed portfolio content and asset references
-├── hooks/useRouteScroll.ts # Route/hash scroll behavior
-└── styles.css              # Tailwind entry plus browser-level motion rules
+├── App.tsx                     # Routes and page composition
+├── components/MediaViewers.tsx # Accessible image and video overlays
+├── config/design.ts            # Shared layout and visual tokens
+├── data/portfolio.ts           # Typed portfolio content and asset references
+├── hooks/useModalLayer.ts      # Focus, scroll-lock, and inert-layer behavior
+├── hooks/useRouteScroll.ts     # Route/hash scroll restoration
+└── styles.css                  # Tailwind entry plus browser-level motion rules
 public/assets/              # Local photography, logo, and CV assets
 ```
 

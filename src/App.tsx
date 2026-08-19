@@ -21,6 +21,7 @@ import {
   Video,
   X,
 } from "lucide-react";
+import { ImageViewer, VideoViewer } from "./components/MediaViewers";
 import { layout } from "./config/design";
 import {
   assets,
@@ -41,6 +42,7 @@ import {
   toSearchString,
   useNavigationLayers,
 } from "./hooks/useNavigationLayers";
+import { useModalLayer } from "./hooks/useModalLayer";
 import { useRouteScroll } from "./hooks/useRouteScroll";
 
 const { heroPortrait, aboutPortrait, logo, cv } = assets;
@@ -226,11 +228,45 @@ function NavigationStateGuard() {
   return null;
 }
 
+function RouteMetadata() {
+  const { pathname } = useLocation();
+
+  useEffect(() => {
+    const isProjectsPage = ["/projects", "/portfolio"].includes(pathname);
+    const title = isProjectsPage
+      ? "Project Archive — Aghimuan Creatives"
+      : "Aghimuan Creatives — Photography and Video";
+    const description = isProjectsPage
+      ? "Browse photography and video projects by Shawn James N. Camara, including portraits, events, nightlife, automotive, property, and brand work."
+      : "Photography, videography, editing, and creative direction by Shawn James N. Camara in Quezon City, Philippines.";
+
+    document.title = title;
+    document
+      .querySelector<HTMLMetaElement>('meta[name="description"]')
+      ?.setAttribute("content", description);
+    document
+      .querySelector<HTMLMetaElement>('meta[property="og:title"]')
+      ?.setAttribute("content", title);
+    document
+      .querySelector<HTMLMetaElement>('meta[property="og:description"]')
+      ?.setAttribute("content", description);
+    document
+      .querySelector<HTMLMetaElement>('meta[name="twitter:title"]')
+      ?.setAttribute("content", title);
+    document
+      .querySelector<HTMLMetaElement>('meta[name="twitter:description"]')
+      ?.setAttribute("content", description);
+  }, [pathname]);
+
+  return null;
+}
+
 export default function App() {
   useRouteScroll();
   return (
     <>
       <NavigationStateGuard />
+      <RouteMetadata />
       <PageProgress />
       <CustomCursor />
       <Routes>
@@ -266,6 +302,7 @@ function PageProgress() {
   return (
     <div
       ref={bar}
+      aria-hidden="true"
       className="fixed inset-x-0 top-0 z-[100] h-[2px] origin-left scale-x-0 bg-[#e9e6df] mix-blend-difference"
     />
   );
@@ -303,9 +340,7 @@ function CustomCursor() {
       ring.current?.classList.toggle(
         "is-active",
         Boolean(
-          (event.target as Element | null)?.closest(
-            "a,button,figure,[data-cursor]",
-          ),
+          (event.target as Element | null)?.closest('[data-cursor="view"]'),
         ),
       );
     const visibility = () => {
@@ -329,8 +364,8 @@ function CustomCursor() {
   }, []);
   return (
     <>
-      <span ref={dot} className="cursor-dot" />
-      <span ref={ring} className="cursor-ring">
+      <span ref={dot} aria-hidden="true" className="cursor-dot" />
+      <span ref={ring} aria-hidden="true" className="cursor-ring">
         View
       </span>
     </>
@@ -340,11 +375,20 @@ function CustomCursor() {
 function Header({ projectsPage = false }: { projectsPage?: boolean }) {
   const [navVisible, setNavVisible] = useState(false);
   const [scrolled, setScrolled] = useState(false);
+  const [desktopNav, setDesktopNav] = useState(() =>
+    matchMedia("(min-width: 768px)").matches,
+  );
   const lastScrollY = useRef(0);
-  const hideTimer = useRef<number | null>(null);
   const navigationRef = useRef<HTMLElement>(null);
+  const menuButtonRef = useRef<HTMLButtonElement>(null);
   const { pathname } = useLocation();
   const { menuOpen, openMenu, closeLayer } = useNavigationLayers();
+  const mobileMenuOpen = menuOpen && !desktopNav;
+  const headerLayerRef = useModalLayer<HTMLElement>({
+    active: mobileMenuOpen,
+    onClose: closeLayer,
+    initialFocusRef: menuButtonRef,
+  });
   const navigationGroups: ReadonlyArray<{
     label: string;
     active: boolean;
@@ -374,6 +418,13 @@ function Header({ projectsPage = false }: { projectsPage?: boolean }) {
     },
   ];
   useEffect(() => {
+    const mediaQuery = matchMedia("(min-width: 768px)");
+    const updateDesktopNav = () => setDesktopNav(mediaQuery.matches);
+    mediaQuery.addEventListener("change", updateDesktopNav);
+    return () => mediaQuery.removeEventListener("change", updateDesktopNav);
+  }, []);
+
+  useEffect(() => {
     lastScrollY.current = window.scrollY;
     setScrolled(window.scrollY > 12);
 
@@ -383,15 +434,10 @@ function Header({ projectsPage = false }: { projectsPage?: boolean }) {
       setScrolled(currentScrollY > 12);
 
       if (Math.abs(delta) >= 4) {
-        if (hideTimer.current) window.clearTimeout(hideTimer.current);
-
         if (delta > 0) {
-          setNavVisible(true);
+          setNavVisible(false);
         } else {
-          hideTimer.current = window.setTimeout(
-            () => setNavVisible(false),
-            300,
-          );
+          setNavVisible(true);
         }
 
         lastScrollY.current = currentScrollY;
@@ -401,24 +447,15 @@ function Header({ projectsPage = false }: { projectsPage?: boolean }) {
     window.addEventListener("scroll", handleScroll, { passive: true });
     return () => {
       window.removeEventListener("scroll", handleScroll);
-      if (hideTimer.current) window.clearTimeout(hideTimer.current);
     };
   }, []);
-
-  useEffect(() => {
-    if (!menuOpen) return;
-
-    const previousOverflow = document.body.style.overflow;
-    document.body.style.overflow = "hidden";
-    return () => {
-      document.body.style.overflow = previousOverflow;
-    };
-  }, [menuOpen]);
 
   const showNav = !scrolled || navVisible || menuOpen;
 
   return (
     <header
+      ref={headerLayerRef}
+      onFocusCapture={() => setNavVisible(true)}
       className={`fixed inset-x-0 top-0 z-50 border-b transition-all duration-500 ease-[cubic-bezier(0.22,1,0.36,1)] motion-reduce:transition-none ${showNav ? "translate-y-0" : "-translate-y-full"} ${scrolled || projectsPage ? "border-white/10 bg-[#151514]/80 backdrop-blur-md" : "border-transparent bg-transparent"}`}
     >
       <div className={`${wrap} flex h-24 items-center justify-between`}>
@@ -440,6 +477,10 @@ function Header({ projectsPage = false }: { projectsPage?: boolean }) {
           ref={navigationRef}
           id="primary-navigation"
           aria-label="Primary navigation"
+          aria-hidden={!desktopNav && !menuOpen ? "true" : undefined}
+          aria-modal={mobileMenuOpen ? "true" : undefined}
+          inert={!desktopNav && !menuOpen}
+          role={mobileMenuOpen ? "dialog" : undefined}
           className={`${menuOpen ? "translate-x-0 opacity-100" : "pointer-events-none translate-x-full opacity-0"} absolute left-0 top-0 z-40 flex h-dvh w-screen flex-col justify-start overflow-y-auto bg-[#151514] px-6 pb-10 pt-28 transition duration-300 md:pointer-events-auto md:static md:h-auto md:w-auto md:flex-row md:translate-x-0 md:items-center md:gap-10 md:overflow-visible md:bg-transparent md:p-0 md:opacity-100`}
         >
           {navigationGroups.map((group) => (
@@ -476,7 +517,7 @@ function Header({ projectsPage = false }: { projectsPage?: boolean }) {
                         .closest("details")
                         ?.removeAttribute("open");
                     }}
-                    className="px-3 py-2.5 text-sm text-[#aaa69d] transition-colors hover:bg-white/[.06] hover:text-white md:whitespace-nowrap md:text-[10px] md:uppercase md:tracking-[.12em]"
+                    className="flex min-h-11 items-center px-3 py-2.5 text-sm text-[#aaa69d] transition-colors hover:bg-white/[.06] hover:text-white md:whitespace-nowrap md:text-[10px] md:uppercase md:tracking-[.12em]"
                   >
                     {label}
                   </Link>
@@ -486,12 +527,13 @@ function Header({ projectsPage = false }: { projectsPage?: boolean }) {
           ))}
         </nav>
         <button
+          ref={menuButtonRef}
           type="button"
           aria-label={menuOpen ? "Close navigation" : "Open navigation"}
           aria-expanded={menuOpen}
           aria-controls="primary-navigation"
           onClick={menuOpen ? closeLayer : openMenu}
-          className="relative z-50 grid size-10 place-items-center border border-white/20 md:hidden"
+          className="relative z-50 grid size-11 place-items-center border border-white/20 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-white md:hidden"
         >
           {menuOpen ? <X size={20} /> : <Menu size={21} />}
         </button>
@@ -564,7 +606,7 @@ function Home() {
               <strong className="font-display text-3xl font-normal md:text-4xl">
                 {value}
               </strong>
-              <span className="mt-2 max-w-24 text-[7px] uppercase leading-relaxed tracking-[.15em] text-[#aaa69d] md:text-[9px]">
+              <span className="mt-2 max-w-24 text-[9px] uppercase leading-relaxed tracking-[.15em] text-[#aaa69d]">
                 {label}
               </span>
             </div>
@@ -576,7 +618,13 @@ function Home() {
         aria-label="Creative services"
         className="overflow-hidden border-b border-white/15 py-5"
       >
-        <div className="flex w-max animate-[marquee_28s_linear_infinite] items-center gap-10 whitespace-nowrap font-display text-4xl uppercase tracking-[-.04em] text-[#dad6ce] md:text-7xl">
+        <span className="sr-only">
+          Photography, videography, event coverage, and creative direction
+        </span>
+        <div
+          aria-hidden="true"
+          className="flex w-max animate-[marquee_28s_linear_infinite] items-center gap-10 whitespace-nowrap font-display text-4xl uppercase tracking-[-.04em] text-[#dad6ce] md:text-7xl"
+        >
           <span>Photography</span>
           <span className="text-[#6f6b64]">✦</span>
           <span>Videography</span>
@@ -674,7 +722,7 @@ function Home() {
                     className="mb-6 text-[#dcd8cf] transition group-hover:-translate-y-1 group-hover:text-white"
                   />
                   <h3 className="text-base">{title}</h3>
-                  <p className="mt-3 max-w-48 text-xs leading-5 text-[#9f9a90]">
+                  <p className="mt-3 max-w-48 text-[13px] leading-5 text-[#aaa69d]">
                     {description}
                   </p>
                   <span className="mt-6 w-7 border-t border-white/20 transition-all group-hover:w-11 group-hover:border-white/50" />
@@ -855,7 +903,7 @@ function Experience() {
           <br />
           <em className="text-[#8e8980]">Skills and training.</em>
         </h2>
-        <div className="mt-12 flex animate-bounce items-center gap-5 text-[9px] uppercase tracking-[.2em] text-[#79766f]">
+        <div className="mt-12 flex animate-bounce items-center gap-5 text-[9px] uppercase tracking-[.2em] text-[#aaa69d]">
           <ArrowDown size={17} /> Scroll to view experience
         </div>
       </div>
@@ -881,7 +929,7 @@ function Experience() {
               key={skill}
               className="skill-line group flex items-center gap-4 border-b border-white/10 py-5"
             >
-              <span className="font-mono text-[9px] text-[#69665f]">
+              <span className="font-mono text-[9px] text-[#8e8980]">
                 {String(i + 1).padStart(2, "0")}
               </span>
               <p className="m-0 text-sm text-[#bdb8af] transition group-hover:translate-x-2 group-hover:text-white">
@@ -994,7 +1042,7 @@ function ExperienceChapter({
               {tags.map((tag) => (
                 <span
                   key={tag}
-                  className="border border-white/30 bg-black/15 px-3 py-2 text-[8px] uppercase tracking-[.16em] backdrop-blur-md"
+                  className="border border-white/30 bg-black/15 px-3 py-2 text-[9px] uppercase tracking-[.16em] backdrop-blur-md"
                 >
                   {tag}
                 </span>
@@ -1079,6 +1127,7 @@ function VisualArchive() {
             <button
               key={item.id}
               type="button"
+              data-cursor="view"
               onClick={() =>
                 openOverlay({
                   kind: "image",
@@ -1097,10 +1146,10 @@ function VisualArchive() {
                 className="h-full w-full object-cover md:grayscale md:transition-transform md:duration-500 md:ease-out md:group-hover:scale-[1.035] md:group-hover:grayscale-0"
               />
               <div className="absolute inset-0 bg-gradient-to-t from-black/70 via-transparent to-black/10 opacity-70 transition group-hover:opacity-40" />
-              <figcaption className="absolute inset-x-4 bottom-4 flex items-end justify-between text-[8px] uppercase tracking-[.18em] text-white/80 md:inset-x-6 md:bottom-5">
+              <span className="absolute inset-x-4 bottom-4 flex items-end justify-between text-[9px] uppercase tracking-[.18em] text-white/80 md:inset-x-6 md:bottom-5">
                 <span>{item.label}</span>
                 <span>{item.number}</span>
-              </figcaption>
+              </span>
             </button>
           );
         })}
@@ -1136,96 +1185,6 @@ function VisualArchive() {
         />
       )}
     </section>
-  );
-}
-
-function ImageViewer({
-  src,
-  alt,
-  label,
-  counter,
-  total,
-  onClose,
-  onPrevious,
-  onNext,
-}: {
-  src: string;
-  alt: string;
-  label: string;
-  counter: string;
-  total: number;
-  onClose: () => void;
-  onPrevious: () => void;
-  onNext: () => void;
-}) {
-  useEffect(() => {
-    const onKeyDown = (event: KeyboardEvent) => {
-      if (event.key === "Escape") onClose();
-      if (event.key === "ArrowLeft") onPrevious();
-      if (event.key === "ArrowRight") onNext();
-    };
-    addEventListener("keydown", onKeyDown);
-    return () => removeEventListener("keydown", onKeyDown);
-  }, [onClose, onPrevious, onNext]);
-
-  return (
-    <div
-      role="dialog"
-      aria-modal="true"
-      aria-label={`Viewing ${alt}`}
-      className="fixed inset-0 z-50 flex items-center justify-center bg-black/95 p-5 md:p-10"
-      onClick={onClose}
-    >
-      <button
-        type="button"
-        onClick={(event) => {
-          event.stopPropagation();
-          onClose();
-        }}
-        className="absolute right-5 top-5 z-10 flex h-11 w-11 items-center justify-center text-white transition hover:bg-white/15 hover:text-white"
-        aria-label="Close image viewer"
-      >
-        <X size={20} />
-      </button>
-      <button
-        type="button"
-        onClick={(event) => {
-          event.stopPropagation();
-          onPrevious();
-        }}
-        className="absolute left-3 top-1/2 z-10 flex h-12 w-12 -translate-y-1/2 items-center justify-center text-white transition hover:bg-white/15 hover:text-white md:left-7"
-        aria-label="Previous image"
-      >
-        <ArrowLeft size={21} />
-      </button>
-      <figure
-        className="relative m-0 flex h-full w-full max-w-6xl flex-col items-center justify-center"
-        onClick={(event) => event.stopPropagation()}
-      >
-        <img
-          src={src}
-          alt={alt}
-          className="max-h-[calc(100vh-9rem)] max-w-full object-contain"
-        />
-        <figcaption className="mt-4 flex w-full items-center justify-between text-[10px] uppercase tracking-[.18em] text-white/80">
-          <span>{label}</span>
-          <span>
-            {counter} / {String(total).padStart(2, "0")}
-          </span>
-        </figcaption>
-      </figure>
-      <button
-        type="button"
-        onClick={(event) => {
-          event.stopPropagation();
-          onNext();
-        }}
-        className="absolute right-3 top-1/2 z-10 flex h-12 w-12 -translate-y-1/2 items-center justify-center text-white transition hover:bg-white/15 hover:text-white md:right-7"
-        aria-label="Next image"
-      >
-        <ArrowRight size={21} />
-      </button>
-    </div>
   );
 }
 
@@ -1402,14 +1361,15 @@ function Projects() {
               to view it at full size.
             </p>
           </div>
-          <div className="sticky top-0 z-30 mt-14 flex items-center justify-between gap-6 border-y border-white/15 bg-[#101010]/95 py-3 backdrop-blur-xl">
+          <div className="sticky top-0 z-30 mt-14 flex items-center justify-between gap-6 border-y border-white/15 bg-[#101010]/95 py-2 backdrop-blur-xl">
             <div className="mobile-swipe flex min-w-0 flex-nowrap items-center gap-6 overflow-x-auto md:gap-8">
               {archiveFilters.map(({ label, slug }) => (
                 <button
                   type="button"
                   key={label}
                   onClick={() => changeFilter(slug)}
-                  className={`relative shrink-0 py-2 text-[9px] uppercase tracking-[.14em] transition ${filter === label ? "text-white" : "text-[#69665f] hover:text-white"}`}
+                  aria-pressed={filter === label}
+                  className={`relative flex min-h-11 shrink-0 items-center py-2 text-[10px] uppercase tracking-[.14em] transition focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-white ${filter === label ? "text-white" : "text-[#969188] hover:text-white"}`}
                 >
                   <span>{label}</span>
                   <span
@@ -1430,6 +1390,10 @@ function Projects() {
             )}
           </div>
         </div>
+        <p className="sr-only" role="status" aria-live="polite">
+          {filter}: showing {shown.length} of {filteredProjects.length} projects,
+          page {page} of {totalPages}.
+        </p>
         <div
           ref={archiveGrid}
           className="archive-editorial mt-1 grid scroll-mt-20 grid-cols-2 gap-1 px-1 md:auto-rows-[180px] md:grid-cols-12"
@@ -1646,7 +1610,7 @@ function ProjectsHero() {
       <div className="absolute inset-0 bg-gradient-to-r from-black/90 via-black/35 to-black/20" />
       <div className="absolute inset-0 bg-gradient-to-t from-black/75 via-transparent to-black/25" />
       <div
-        className={`${wrap} relative z-10 flex min-h-[calc(100vh-6rem)] flex-col justify-between py-12 md:py-16`}
+        className={`${wrap} relative z-10 flex min-h-[calc(100vh-6rem)] flex-col justify-between pb-12 pt-32 md:pb-16 md:pt-36`}
       >
         <div className="flex justify-between">
           <span className={eyebrow}>Project archive / 2019—Present</span>
@@ -1739,7 +1703,6 @@ function HorizontalProjects({ items }: { items: Project[] }) {
           {items.map((item, index) => (
             <figure
               key={item.id}
-              data-cursor
               className="group relative m-0 h-[68svh] w-[88vw] shrink-0 snap-center overflow-hidden bg-[#222] md:h-full md:w-[72vw] lg:w-[58vw]"
             >
               <img
@@ -1800,7 +1763,6 @@ function EditorialProject({
   const action = onPlay ?? onView;
   return (
     <figure
-      data-cursor
       className={`${layouts[index % layouts.length] ?? layouts[0]} archive-tile group relative m-0 min-h-[270px] overflow-hidden bg-[#222] sm:min-h-[340px] md:min-h-0`}
     >
       <img
@@ -1815,6 +1777,7 @@ function EditorialProject({
         <button
           type="button"
           onClick={action}
+          data-cursor="view"
           className={`absolute inset-0 z-10 ${onPlay ? "cursor-pointer" : "cursor-zoom-in"}`}
           aria-label={`${onPlay ? "Play" : "View"} ${item.title}`}
         >
@@ -1827,7 +1790,7 @@ function EditorialProject({
       )}
       <figcaption className="pointer-events-none absolute inset-x-4 bottom-4 z-20 flex items-end justify-between md:inset-x-5 md:bottom-5">
         <div>
-          <span className="text-[7px] uppercase tracking-[.16em] text-white/60 md:text-[8px]">
+          <span className="text-[9px] uppercase tracking-[.16em] text-white/70">
             {item.category}
           </span>
           <h3 className="mt-1 max-w-28 font-display text-xl leading-none md:mt-2 md:max-w-none md:text-3xl">
@@ -1846,63 +1809,6 @@ function EditorialProject({
   );
 }
 
-function VideoViewer({
-  src,
-  poster,
-  title,
-  onClose,
-}: {
-  src: string;
-  poster: string;
-  title: string;
-  onClose: () => void;
-}) {
-  useEffect(() => {
-    const onKeyDown = (event: KeyboardEvent) => {
-      if (event.key === "Escape") onClose();
-    };
-    addEventListener("keydown", onKeyDown);
-    return () => removeEventListener("keydown", onKeyDown);
-  }, [onClose]);
-  return (
-    <div
-      role="dialog"
-      aria-modal="true"
-      aria-label={`Viewing video ${title}`}
-      className="fixed inset-0 z-[70] grid place-items-center bg-black/95 p-4 md:p-8"
-      onClick={onClose}
-    >
-      <button
-        type="button"
-        onClick={(event) => {
-          event.stopPropagation();
-          onClose();
-        }}
-        className="absolute right-5 top-5 z-10 grid size-11 place-items-center text-white transition hover:bg-white/15"
-        aria-label="Close video"
-      >
-        <X size={20} />
-      </button>
-      <figure
-        className="m-0 flex h-full max-h-[calc(100vh-2rem)] w-full max-w-6xl flex-col items-center justify-center"
-        onClick={(event) => event.stopPropagation()}
-      >
-        <video
-          src={src}
-          poster={poster}
-          controls
-          playsInline
-          preload="metadata"
-          className="min-h-0 max-h-[calc(100vh-6rem)] max-w-full bg-black object-contain"
-        />
-        <figcaption className="mt-3 text-[10px] uppercase tracking-[.18em] text-white/70">
-          {title} · 1080p
-        </figcaption>
-      </figure>
-    </div>
-  );
-}
-
 function FeaturedProjectCard({
   item,
   onClick,
@@ -1916,6 +1822,7 @@ function FeaturedProjectCard({
       <button
         type="button"
         onClick={onClick}
+        data-cursor="view"
         className="block w-full cursor-zoom-in text-left"
         aria-label={`View ${item.title}`}
       >
@@ -1932,11 +1839,11 @@ function FeaturedProjectCard({
           <div className="absolute inset-x-5 bottom-4 flex translate-y-0 items-end justify-between opacity-100 transition md:translate-y-2 md:opacity-0 md:group-hover:translate-y-0 md:group-hover:opacity-100">
             <div>
               <h3 className="font-display text-xl">{item.title}</h3>
-              <span className="text-[8px] uppercase tracking-[.12em] text-white/70">
+              <span className="text-[9px] uppercase tracking-[.12em] text-white/70">
                 {item.category}
               </span>
             </div>
-            <span className="text-[8px] tracking-[.1em] text-white/70">
+            <span className="text-[9px] tracking-[.1em] text-white/70">
               {item.year}
             </span>
           </div>
@@ -1964,7 +1871,7 @@ function Footer() {
             Photography, video, editing, and design.
           </p>
         </div>
-        <div className="flex min-w-0 flex-col gap-2 break-words text-[11px] text-[#aaa69d]">
+        <div className="flex min-w-0 flex-col gap-2 break-words text-xs text-[#aaa69d]">
           <span className={eyebrow}>Contact</span>
           <a href="mailto:camarashawnjames@gmail.com">
             camarashawnjames@gmail.com
@@ -1972,14 +1879,14 @@ function Footer() {
           <a href="mailto:aghimuanfilms@gmail.com">aghimuanfilms@gmail.com</a>
           <a href="tel:+639995606454">+63 999 560 6454</a>
         </div>
-        <div className="flex flex-col gap-2 text-[11px] text-[#aaa69d]">
+        <div className="flex flex-col gap-2 text-xs text-[#aaa69d]">
           <span className={eyebrow}>Location</span>
           <span>Quezon City, Philippines</span>
           <span>Available for freelance work</span>
         </div>
         <div>
           <span className={eyebrow}>Links</span>
-          <div className="mt-4 flex flex-col items-start gap-3 text-[11px] text-[#aaa69d]">
+          <div className="mt-4 flex flex-col items-start gap-3 text-xs text-[#aaa69d]">
             {socials.map(([label, href]) => (
               <a
                 key={label}
@@ -2004,7 +1911,7 @@ function Footer() {
         </a>
       </div>
       <div
-        className={`${wrap} flex justify-between border-t border-white/15 py-4 text-[8px] uppercase tracking-[.12em] text-[#79766f]`}
+        className={`${wrap} flex justify-between border-t border-white/15 py-4 text-[9px] uppercase tracking-[.12em] text-[#aaa69d]`}
       >
         <span>© {new Date().getFullYear()} Aghimuan Creatives</span>
         <span>Quezon City, Philippines</span>
